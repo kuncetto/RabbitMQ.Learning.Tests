@@ -22,19 +22,22 @@ namespace RabbitMQ.Learning.Tests
                 });
         }
 
-        [Fact]
-        public void GivenAFactoryWhenAnUriIsAssignedThenPropertiesShouldChangeAccordingly()
+        [Theory]
+        [InlineData("amqp://username:password@hostname:1234/vhost", "username", "password", "hostname", 1234, "vhost")]
+        [InlineData("amqp://hostname:1234/vhost", "guest", "guest", "hostname", 1234, "vhost")]
+        [InlineData("amqp://hostname:1234", "guest", "guest", "hostname", 1234, "/")]
+        public void GivenAFactoryWhenAValidUriIsAssignedThenPropertiesShouldChangeAccordingly(string uri, params object[] expected)
         {
             new TestBuilder<ConnectionFactory>()
                 .Given(() => new ConnectionFactory())
-                .When(factory => factory.Uri = new Uri("amqp://username:password@hostname:1234/vhost"))
+                .When(factory => factory.Uri = new Uri(uri))
                 .Then(factory =>
                 {
-                    Assert.Equal("username", factory.UserName);
-                    Assert.Equal("password", factory.Password);
-                    Assert.Equal("hostname", factory.HostName);
-                    Assert.Equal(1234, factory.Port);
-                    Assert.Equal("vhost", factory.VirtualHost);
+                    Assert.Equal(expected[0], factory.UserName);
+                    Assert.Equal(expected[1], factory.Password);
+                    Assert.Equal(expected[2], factory.HostName);
+                    Assert.Equal(expected[3], factory.Port);
+                    Assert.Equal(expected[4], factory.VirtualHost);
                 });
         }
 
