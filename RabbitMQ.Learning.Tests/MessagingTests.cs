@@ -11,29 +11,39 @@ namespace RabbitMQ.Learning.Tests
         [InlineData("rabbitmq.test.queue", "Hello, world!")]
         public void WhenAMessageIsPublishedOnAQueueThenAConsumerShouldReceiveIt(string queueName, string originalMessage)
         {
-            new TestBuilder<IModel>()
+            new TestBuilder<MessagingContext>()
                 .Given(() =>
                 {
                     var factory = new ConnectionFactory { HostName = "localhost" };
                     var connection = factory.CreateConnection();
 
-                    var model = connection.CreateModel();
+                    return new MessagingContext(() =>
+                    {
+                        var sender = connection.CreateModel();
 
-                    model.QueueDeclare(queueName, false, false, true, null);
+                        sender.QueueDeclare(queueName, false, false, true, null);
 
-                    return model;
+                        return sender;
+                    }, () =>
+                    {
+                        var receiver = connection.CreateModel();
+
+                        receiver.QueueDeclare(queueName, false, false, true, null);
+
+                        return receiver;
+                    });
                 })
-                .When(model =>
+                .When(context =>
                 {
                     // sender
                     var body = Encoding.UTF8.GetBytes(originalMessage);
 
-                    model.BasicPublish(exchange: "", routingKey: queueName, basicProperties: null, body: body);
+                    context.Sender.BasicPublish(exchange: "", routingKey: queueName, basicProperties: null, body: body);
                 })
-                .Then(model =>
+                .Then(context =>
                 {
                     // receiver
-                    var consumer = new EventingBasicConsumer(model);
+                    var consumer = new EventingBasicConsumer(context.Receiver);
 
                     consumer.Received += (s, ea) =>
                     {
@@ -43,41 +53,49 @@ namespace RabbitMQ.Learning.Tests
                         Assert.Equal(originalMessage, receivedMessage);
                     };
 
-                    model.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+                    context.Receiver.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
                 });
         }
 
         [Theory]
-        [InlineData("rabbitmq.test.exchange", "Hello, world!")]
-        public void WhenAMessageIsPublishedOnAnExchangeThenAQueueBindedToItShouldReceiveThat(string exchange, string originalMessage)
+        [InlineData("rabbitmq.test.exchange", "rabbitmq.test.queue", "Hello, world!")]
+        public void WhenAMessageIsPublishedOnAnExchangeThenAQueueBindedToItShouldReceiveThat(string exchange, string queueName, string originalMessage)
         {
-            new TestBuilder<IModel>()
+            new TestBuilder<MessagingContext>()
                 .Given(() =>
                 {
                     var factory = new ConnectionFactory { HostName = "localhost" };
                     var connection = factory.CreateConnection();
 
-                    var model = connection.CreateModel();
+                    return new MessagingContext(() =>
+                    {
+                        var sender = connection.CreateModel();
 
-                    model.ExchangeDeclare(exchange: exchange, type: "fanout");
+                        sender.ExchangeDeclare(exchange: exchange, type: "fanout");
 
-                    return model;
+                        return sender;
+                    }, () =>
+                    {
+                        var receiver = connection.CreateModel();
+
+                        receiver.ExchangeDeclare(exchange: exchange, type: "fanout");
+                        receiver.QueueDeclare(queueName, false, false, true, null);
+                        receiver.QueueBind(queue: queueName, exchange: exchange, routingKey: "");
+
+                        return receiver;
+                    });
                 })
-                .When(model =>
+                .When(context =>
                 {
                     // sender
                     var body = Encoding.UTF8.GetBytes(originalMessage);
 
-                    model.BasicPublish(exchange: exchange, routingKey: "", basicProperties: null, body: body);
+                    context.Sender.BasicPublish(exchange: exchange, routingKey: "", basicProperties: null, body: body);
                 })
-                .Then(model =>
+                .Then(context =>
                 {
                     // receiver
-
-                    var queueName = model.QueueDeclare().QueueName;
-                    model.QueueBind(queue: queueName, exchange: exchange, routingKey: "");
-
-                    var consumer = new EventingBasicConsumer(model);
+                    var consumer = new EventingBasicConsumer(context.Receiver);
 
                     consumer.Received += (s, ea) =>
                     {
@@ -87,7 +105,7 @@ namespace RabbitMQ.Learning.Tests
                         Assert.Equal(originalMessage, receivedMessage);
                     };
 
-                    model.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
+                    context.Receiver.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
                 });
         }
     }
