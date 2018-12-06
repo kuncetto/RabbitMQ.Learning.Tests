@@ -1,6 +1,6 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using System.Text;
+using System;
 using Xunit;
 
 namespace RabbitMQ.Learning.Tests
@@ -8,105 +8,44 @@ namespace RabbitMQ.Learning.Tests
     public class MessagingTests
     {
         [Theory]
-        [InlineData("rabbitmq.test.queue", "Hello, world!")]
-        public void WhenAMessageIsPublishedOnAQueueThenAConsumerShouldReceiveIt(string queueName, string originalMessage)
+        [InlineData("rabbitmq.test.queue", "Hello World!")]
+        public void WhenAMessageIsPublishedOnAQueueThenAConsumerShouldReceiveIt(string queue, string message)
         {
-            new TestBuilder<MessagingContext>()
-                .Given(() =>
-                {
-                    var factory = new ConnectionFactory { HostName = "localhost" };
-                    var connection = factory.CreateConnection();
-
-                    return new MessagingContext(() =>
-                    {
-                        var sender = connection.CreateModel();
-
-                        sender.QueueDeclare(queueName, false, false, true, null);
-
-                        return sender;
-                    }, () =>
-                    {
-                        var receiver = connection.CreateModel();
-
-                        receiver.QueueDeclare(queueName, false, false, true, null);
-
-                        return receiver;
-                    });
-                })
-                .When(context =>
-                {
-                    // sender
-                    var body = Encoding.UTF8.GetBytes(originalMessage);
-
-                    context.Sender.BasicPublish(exchange: "", routingKey: queueName, basicProperties: null, body: body);
-                })
-                .Then(context =>
-                {
-                    // receiver
-                    var consumer = new EventingBasicConsumer(context.Receiver);
-
-                    consumer.Received += (s, ea) =>
-                    {
-                        var body = ea.Body;
-                        var receivedMessage = Encoding.UTF8.GetString(body);
-
-                        Assert.Equal(originalMessage, receivedMessage);
-                    };
-
-                    context.Receiver.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
-                });
+            // Publish directly on a queue (exchange = "", routingKey = queue)
+            WhenPublisherSendAMessageThenConsumerShouldReceiveIt("", queue, queue, message);
         }
 
         [Theory]
-        [InlineData("rabbitmq.test.exchange", "rabbitmq.test.queue", "Hello, world!")]
-        public void WhenAMessageIsPublishedOnAnExchangeThenAQueueBindedToItShouldReceiveThat(string exchange, string queueName, string originalMessage)
+        [InlineData("rabbitmq.test.exchange", "rabbitmq.test.queue", "Publish/Subscribe")]
+        public void WhenAMessageIsPublishedOnAnExchangeThenABoundQueueShouldReceiveIt(string exchange, string queue, string message)
         {
-            new TestBuilder<MessagingContext>()
-                .Given(() =>
-                {
-                    var factory = new ConnectionFactory { HostName = "localhost" };
-                    var connection = factory.CreateConnection();
+            // Publish on exchange bound by a queue
+            WhenPublisherSendAMessageThenConsumerShouldReceiveIt(exchange, "", queue, message);
+        }
 
-                    return new MessagingContext(() =>
+        private void WhenPublisherSendAMessageThenConsumerShouldReceiveIt(string exchange, string routingKey, string queue, string message)
+        {
+            using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
+            {
+                new TestBuilder<MessagingContext>()
+                    .Given(() =>
                     {
-                        var sender = connection.CreateModel();
-
-                        sender.ExchangeDeclare(exchange: exchange, type: "fanout");
-
-                        return sender;
-                    }, () =>
+                        return new MessagingContext(
+                            () => connection.CreateModel().ForPublisher(exchange, routingKey, queue),
+                            () => connection.CreateModel().ForConsumer(exchange, routingKey, queue));
+                    })
+                    .When(context =>
                     {
-                        var receiver = connection.CreateModel();
-
-                        receiver.ExchangeDeclare(exchange: exchange, type: "fanout");
-                        receiver.QueueDeclare(queueName, false, false, true, null);
-                        receiver.QueueBind(queue: queueName, exchange: exchange, routingKey: "");
-
-                        return receiver;
+                        context.Publisher.Publish(exchange: exchange, routingKey: routingKey, message: message);
+                    })
+                    .Then(context =>
+                    {
+                        context.Consumer.Consume(queue,
+                            onReceived: receivedMessage => Assert.Equal(message, receivedMessage),
+                            onError: exception => throw exception,
+                            onTimeout: timeout => throw new TimeoutException($"Timeout expired after {timeout} seconds!"));
                     });
-                })
-                .When(context =>
-                {
-                    // sender
-                    var body = Encoding.UTF8.GetBytes(originalMessage);
-
-                    context.Sender.BasicPublish(exchange: exchange, routingKey: "", basicProperties: null, body: body);
-                })
-                .Then(context =>
-                {
-                    // receiver
-                    var consumer = new EventingBasicConsumer(context.Receiver);
-
-                    consumer.Received += (s, ea) =>
-                    {
-                        var body = ea.Body;
-                        var receivedMessage = Encoding.UTF8.GetString(body);
-
-                        Assert.Equal(originalMessage, receivedMessage);
-                    };
-
-                    context.Receiver.BasicConsume(queue: queueName, autoAck: true, consumer: consumer);
-                });
+            }
         }
     }
 }

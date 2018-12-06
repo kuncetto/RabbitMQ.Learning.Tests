@@ -7,13 +7,14 @@ namespace RabbitMQ.Learning.Tests
 {
     class MessagingContext
     {
-        public IModel Sender { get; private set; }
-        public IModel Receiver { get; private set; }
+        public static int TimeoutSeconds = 5;
+        public IModel Publisher { get; private set; }
+        public IModel Consumer { get; private set; }
 
-        public MessagingContext(Func<IModel> createSender, Func<IModel> createReceiver)
+        public MessagingContext(Func<IModel> createPublisher, Func<IModel> createConsumer)
         {
-            Sender = createSender.Invoke();
-            Receiver = createReceiver.Invoke();
+            Publisher = createPublisher.Invoke();
+            Consumer = createConsumer.Invoke();
         }
     }
 }
