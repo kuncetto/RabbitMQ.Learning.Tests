@@ -52,9 +52,9 @@ namespace RabbitMQ.Learning.Tests
             model.BasicPublish(exchange: exchange, routingKey: routingKey, basicProperties: null, body: body);
         }
 
-        public static void Consume(this IModel model, string queue, Action<string> onReceived, Action<Exception> onError = null, Action<int> onTimeout = null)
+        public static void ConsumeWithTimeout(this IModel model, string queue, TimeSpan timeout, 
+            Action<string> onReceived, Action<Exception> onError = null, Action<TimeSpan> onTimeout = null)
         {
-            var timeoutSeconds = 5;
             var resetEvent = new AutoResetEvent(false);
             var consumer = new EventingBasicConsumer(model);
 
@@ -82,10 +82,10 @@ namespace RabbitMQ.Learning.Tests
 
             model.BasicConsume(queue: queue, autoAck: false, consumer: consumer);
             
-            if (!resetEvent.WaitOne((int)TimeSpan.FromSeconds(timeoutSeconds).TotalMilliseconds))
+            if (!resetEvent.WaitOne(timeout))
             {
                 // timeout
-                onTimeout?.Invoke(timeoutSeconds);
+                onTimeout?.Invoke(timeout);
             }
         }
     }

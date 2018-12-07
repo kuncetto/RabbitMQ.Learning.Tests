@@ -40,7 +40,9 @@ namespace RabbitMQ.Learning.Tests
                     })
                     .Then(context =>
                     {
-                        context.Consumer.Consume(queue,
+                        context.Consumer.ConsumeWithTimeout(
+                            queue: queue, 
+                            timeout: TimeSpan.FromSeconds(5),
                             onReceived: receivedMessage => Assert.Equal(message, receivedMessage),
                             onError: exception => throw exception,
                             onTimeout: timeout => throw new TimeoutException($"Timeout expired after {timeout} seconds!"));
