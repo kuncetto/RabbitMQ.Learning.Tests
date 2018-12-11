@@ -49,5 +49,30 @@ namespace RabbitMQ.Learning.Tests
                     });
             }
         }
+
+        [Theory]
+        [InlineData("rabbitmq.test.exchange", "", "rabbitmq.test.queue", "Publish/Subscribe Async")]
+        public void WhenPublisherSendAMessageThenConsumerShouldReceiveItAsync(string exchange, string routingKey, string queue, string message)
+        {
+            using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
+            {
+                new TestBuilder<MessagingContext>()
+                    .Given(() =>
+                    {
+                        return new MessagingContext(
+                            () => connection.CreateModel().ForPublisher(exchange, routingKey, queue),
+                            () => connection.CreateModel().ForConsumer(exchange, routingKey, queue));
+                    })
+                    .When(context =>
+                    {
+                        context.Publisher.Publish(exchange: exchange, routingKey: routingKey, message: message);
+                    })
+                    .Then(context =>
+                    {
+                        var received = context.Consumer.ConsumeAsync(queue: queue).Result;
+                        Assert.Equal(message, received);
+                    });
+            }
+        }
     }
 }

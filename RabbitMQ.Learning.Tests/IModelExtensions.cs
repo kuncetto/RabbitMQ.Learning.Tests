@@ -3,6 +3,7 @@ using RabbitMQ.Client.Events;
 using System;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace RabbitMQ.Learning.Tests
 {
@@ -87,6 +88,39 @@ namespace RabbitMQ.Learning.Tests
                 // timeout
                 onTimeout?.Invoke(timeout);
             }
+        }
+
+        public static async Task<string> ConsumeAsync(this IModel model, string queue)
+        {
+            var message = string.Empty;
+            var tcs = new TaskCompletionSource<string>();
+
+            EventHandler<BasicDeliverEventArgs> onReceived = (s, e) =>
+            {
+                var body = e.Body;
+                var receivedMessage = Encoding.UTF8.GetString(body);
+
+                tcs.TrySetResult(receivedMessage);
+            };
+
+            EventHandler<ConsumerEventArgs> onCancelled = (s, e) => tcs.TrySetCanceled();
+
+            var consumer = new EventingBasicConsumer(model);
+
+            try
+            {
+                consumer.Received += onReceived;
+                consumer.ConsumerCancelled += onCancelled;
+                model.BasicConsume(queue: queue, autoAck: true, consumer: consumer);
+                message = await tcs.Task;
+            }
+            finally
+            {
+                consumer.Received -= onReceived;
+                consumer.ConsumerCancelled -= onCancelled;
+            }
+
+            return message;
         }
     }
 }
