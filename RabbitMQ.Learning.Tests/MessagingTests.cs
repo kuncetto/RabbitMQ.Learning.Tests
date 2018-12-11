@@ -1,6 +1,7 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace RabbitMQ.Learning.Tests
@@ -41,7 +42,7 @@ namespace RabbitMQ.Learning.Tests
                     .Then(context =>
                     {
                         context.Consumer.ConsumeWithTimeout(
-                            queue: queue, 
+                            queue: queue,
                             timeout: TimeSpan.FromSeconds(5),
                             onReceived: receivedMessage => Assert.Equal(message, receivedMessage),
                             onError: exception => throw exception,
@@ -71,6 +72,29 @@ namespace RabbitMQ.Learning.Tests
                     {
                         var received = context.Consumer.ConsumeAsync(queue: queue).Result;
                         Assert.Equal(message, received);
+                    });
+            }
+        }
+
+        [Theory]
+        [InlineData("rabbitmq.test.rpc")]
+        public void WhenClientCallAMethodThenServerShouldSendAResponse(string queueName)
+        {
+            using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
+            using (var client = connection.CreateModel())
+            using (var server = connection.CreateModel())
+            {
+                new TestBuilder<RpcContext>()
+                    .Given(() => new RpcContext
+                    {
+                        Client = new RpcClient(client, queueName),
+                        Server = new RpcServer(server, queueName, (s) => "server>> " + s)
+                    })
+                    .When(context => context.Server.Run())
+                    .Then(context =>
+                    {
+                        var response = context.Client.CallAsync("hello");
+                        Assert.Equal("server>> hello", response.Result);
                     });
             }
         }
