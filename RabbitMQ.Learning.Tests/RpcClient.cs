@@ -13,15 +13,15 @@ namespace RabbitMQ.Learning.Tests
         private readonly EventingBasicConsumer _consumer;
 
         public IModel Model { get; private set; }
-        public string QueueName { get; private set; }
+        //public string QueueName { get; private set; }
 
         private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> _pending = 
             new ConcurrentDictionary<string, TaskCompletionSource<string>>();
 
-        public RpcClient(IModel model, string queueName)
+        public RpcClient(IModel model/*, string queueName*/)
         {
             Model = model;
-            QueueName = queueName;
+            //QueueName = queueName;
 
             _consumer = new EventingBasicConsumer(model);
             _consumer.Received += (sender, args) =>
@@ -35,7 +35,7 @@ namespace RabbitMQ.Learning.Tests
             };
         }
 
-        public Task<string> CallAsync(string message)
+        public Task<string> CallAsync(string queueName, string message)
         {
             var correlationId = Guid.NewGuid().ToString();
             var replyQueueName = Model.QueueDeclare().QueueName;
@@ -50,7 +50,7 @@ namespace RabbitMQ.Learning.Tests
             var tcs = new TaskCompletionSource<string>();
             _pending.TryAdd(correlationId, tcs);
 
-            Model.BasicPublish(exchange: "", routingKey: QueueName, basicProperties: props, body: messageBytes);
+            Model.BasicPublish(exchange: "", routingKey: queueName, basicProperties: props, body: messageBytes);
 
             Model.BasicConsume(replyQueueName, true, _consumer);
 

@@ -7,6 +7,6 @@ namespace RabbitMQ.Learning.Tests
     class RpcContext
     {
         public RpcClient Client { get; set; }
-        public RpcServer Server { get; set; }
+        public IRpcServer Server { get; set; }
     }
 }

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace RabbitMQ.Learning.Tests
 {
-    class RpcServer
+    class RpcServer : IRpcServer
     {
         private readonly IModel _model;
         private readonly string _queueName;
