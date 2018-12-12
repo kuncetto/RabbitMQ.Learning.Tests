@@ -2,8 +2,6 @@
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace RabbitMQ.Learning.Tests
@@ -13,46 +11,47 @@ namespace RabbitMQ.Learning.Tests
         private readonly EventingBasicConsumer _consumer;
 
         public IModel Model { get; private set; }
-        //public string QueueName { get; private set; }
+        public string QueueName { get; private set; }
 
-        private readonly ConcurrentDictionary<string, TaskCompletionSource<string>> _pending = 
-            new ConcurrentDictionary<string, TaskCompletionSource<string>>();
+        private readonly ConcurrentDictionary<string, TaskCompletionSource<byte[]>> _pending =
+            new ConcurrentDictionary<string, TaskCompletionSource<byte[]>>();
 
-        public RpcClient(IModel model/*, string queueName*/)
+        public RpcClient(IModel model, string queueName)
         {
             Model = model;
-            //QueueName = queueName;
+            QueueName = queueName;
 
             _consumer = new EventingBasicConsumer(model);
             _consumer.Received += (sender, args) =>
             {
                 var correlationId = args.BasicProperties.CorrelationId;
-                if (!_pending.TryRemove(correlationId, out TaskCompletionSource<string> tcs))
+                if (!_pending.TryRemove(correlationId, out TaskCompletionSource<byte[]> tcs))
                     return;
-                var body = args.Body;
-                string response = Encoding.UTF8.GetString(body);
-                tcs.TrySetResult(response);
+
+                tcs.TrySetResult(args.Body);
             };
         }
 
-        public Task<string> CallAsync(string queueName, string message)
+        public Task<byte[]> CallAsync(byte[] bytes)
         {
-            var correlationId = Guid.NewGuid().ToString();
-            var replyQueueName = Model.QueueDeclare().QueueName;
+            var replyTo = Model.QueueDeclare().QueueName;
 
-            var props = Model.CreateBasicProperties();
+            var properties = Model.CreateBasicProperties(
+                correlationId: Guid.NewGuid().ToString(),
+                replyTo: replyTo);
 
-            props.CorrelationId = correlationId;
-            props.ReplyTo = replyQueueName;
+            return CallAsync(properties, bytes);
+        }
 
-            var messageBytes = Encoding.UTF8.GetBytes(message);
+        public Task<byte[]> CallAsync(IBasicProperties properties, byte[] bytes)
+        {
+            var tcs = new TaskCompletionSource<byte[]>();
 
-            var tcs = new TaskCompletionSource<string>();
-            _pending.TryAdd(correlationId, tcs);
+            _pending.TryAdd(properties.CorrelationId, tcs);
 
-            Model.BasicPublish(exchange: "", routingKey: queueName, basicProperties: props, body: messageBytes);
+            Model.BasicPublish(exchange: "", routingKey: QueueName, basicProperties: properties, body: bytes);
 
-            Model.BasicConsume(replyQueueName, true, _consumer);
+            Model.BasicConsume(properties.ReplyTo, true, _consumer);
 
             return tcs.Task;
         }

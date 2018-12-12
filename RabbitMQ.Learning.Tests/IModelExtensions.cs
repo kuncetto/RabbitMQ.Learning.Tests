@@ -122,5 +122,15 @@ namespace RabbitMQ.Learning.Tests
 
             return message;
         }
+
+        public static IBasicProperties CreateBasicProperties(this IModel model, string correlationId, string replyTo)
+        {
+            var properties = model.CreateBasicProperties();
+
+            properties.CorrelationId = correlationId;
+            properties.ReplyTo = replyTo;
+
+            return properties;
+        }
     }
 }
