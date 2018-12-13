@@ -1,22 +1,11 @@
 ﻿using RabbitMQ.Client;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace RabbitMQ.Learning.Tests
 {
     public class MessagingTests
     {
-
-        public Func<byte[], byte[]> RemoteProcedure => 
-            (b) => Encoding.UTF8.GetBytes(ServerReply(Encoding.UTF8.GetString(b)));
-
-        public Func<string, string> ServerReply => 
-            (s) => $"remote: {s}";
-
         [Theory]
         [InlineData("rabbitmq.test.queue", "Hello World!")]
         public void WhenAMessageIsPublishedOnAQueueThenAConsumerShouldReceiveIt(string queue, string message)
@@ -84,126 +73,5 @@ namespace RabbitMQ.Learning.Tests
                     });
             }
         }
-
-        [Theory]
-        [InlineData("rabbitmq.test.rpc", "hello")]
-        [InlineData("rabbitmq.test.rpc", "bye")]
-        public void WhenClientCallAMethodThenServerShouldSendAResponse(string queueName, string message)
-        {
-            using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
-            using (var client = connection.CreateModel())
-            using (var server = connection.CreateModel())
-            {
-                new TestBuilder<RpcContext>()
-                    .Given(() => new RpcContext
-                    {
-                        Clients = new List<IRpcClient> { new RpcClient(client, queueName) },
-                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, RemoteProcedure) }
-                    })
-                    .When(context => context.Servers.ForEach(s => s.Run()))
-                    .Then(context =>
-                    {
-                        var response = context.Clients.First().CallAsync(Encoding.UTF8.GetBytes(message));
-                        Assert.Equal(ServerReply(message), Encoding.UTF8.GetString(response.Result));
-                    });
-            }
-        }
-
-        [Theory]
-        [InlineData("rabbitmq.test.rpc", "hello", "bye")]
-        [InlineData("rabbitmq.test.rpc", "a", "b", "c", "d", "e")]
-        public void WhenClientCallAMethodSeveralTimesThenServerShouldSendTheRespectiveResponses(string queueName, params string[] messages)
-        {
-            using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
-            using (var client = connection.CreateModel())
-            using (var server = connection.CreateModel())
-            {
-                new TestBuilder<RpcContext>()
-                    .Given(() => new RpcContext
-                    {
-                        Clients = new List<IRpcClient> { new RpcClient(client, queueName) },
-                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, RemoteProcedure) }
-                    })
-                    .When(context => context.Servers.ForEach(s => s.Run()))
-                    .Then(context =>
-                    {
-                        var calls = new Dictionary<string, Task<byte[]>>();
-
-                        foreach (var message in messages)
-                        {
-                            calls[message] = context.Clients.First().CallAsync(Encoding.UTF8.GetBytes(message));
-                        }
-
-                        foreach (var call in calls)
-                        {
-                            Assert.Equal(ServerReply(call.Key), Encoding.UTF8.GetString(call.Value.Result));
-                        }
-                    });
-            }
-        }
-
-        [Theory]
-        [InlineData("rabbitmq.test.rpc", "hello")]
-        public void WhenOneOrMoreClientsCallAMethodThenServerShouldSendTheRespectiveResponses(string queueName, string messageContent)
-        {
-            using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
-            using (var client = connection.CreateModel())
-            using (var server = connection.CreateModel())
-            {
-                new TestBuilder<RpcContext>()
-                    .Given(() => new RpcContext
-                    {
-                        Clients = new List<IRpcClient> { new RpcClient(client, queueName), new RpcClient(client, queueName) },
-                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, RemoteProcedure) }
-                    })
-                    .When(context => context.Servers.ForEach(s => s.Run()))
-                    .Then(context =>
-                    {
-                        var calls = new Dictionary<string, Task<byte[]>>();
-
-                        context.Clients.ForEach(c => {
-                            var clientId = Guid.NewGuid().ToString();
-                            var message = $"Client: {clientId} Content: {messageContent}";
-
-                            calls[message] = c.CallAsync(Encoding.UTF8.GetBytes(message));
-                        });
-
-                        foreach (var call in calls)
-                        {
-                            Assert.Equal(ServerReply(call.Key), Encoding.UTF8.GetString(call.Value.Result));
-                        }
-                    });
-            }
-        }
-
-        //[Theory]
-        //[InlineData("rabbitmq.test.rpc.1", "rabbitmq.test.rpc.2", "hello")]
-        //[InlineData("rabbitmq.test.rpc.1", "rabbitmq.test.rpc.2", "bye")]
-        //public void WhenClientCallTwoMethodsThenServersShouldSendTheirRespectiveResponses(string firstQueueName, string secondQueueName, string message)
-        //{
-        //    using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
-        //    using (var client = connection.CreateModel())
-        //    using (var server = connection.CreateModel())
-        //    {
-        //        new TestBuilder<RpcContext>()
-        //            .Given(() => new RpcContext
-        //            {
-        //                Client = new RpcClient(client, firstQueueName),
-        //                Server = new RpcServerComposite(
-        //                    new List<RpcServer> {
-        //                        new RpcServer(server, firstQueueName, (s) => $"{firstQueueName}>> " + s),
-        //                        new RpcServer(server, secondQueueName, (s) => $"{secondQueueName}>> " + s),
-        //                    })
-        //            })
-        //            .When(context => context.Server.Run())
-        //            .Then(context =>
-        //            {
-        //                var firstCall = context.Client.CallAsync(firstQueueName, message);
-        //                var secondCall = context.Client.CallAsync(secondQueueName, message);
-        //                Assert.Equal($"{firstQueueName}>> {message}", firstCall.Result);
-        //                Assert.Equal($"{secondQueueName}>> {message}", secondCall.Result);
-        //            });
-        //    }
-        //}
     }
 }
