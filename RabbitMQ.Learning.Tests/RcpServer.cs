@@ -1,7 +1,7 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace RabbitMQ.Learning.Tests
 {
@@ -20,16 +20,18 @@ namespace RabbitMQ.Learning.Tests
             _model.BasicQos(0, 1, false);
 
             _consumer = new EventingBasicConsumer(_model);
-            _consumer.Received += (sender, args) =>
+            _consumer.Received += async (sender, args) =>
             {
-                var body = args.Body;
-                var props = args.BasicProperties;
+                await Task.Factory.StartNew(() => {
+                    var body = args.Body;
+                    var props = args.BasicProperties;
 
-                var replyProps = _model.CreateBasicProperties(correlationId: props.CorrelationId);
+                    var replyProps = _model.CreateBasicProperties(correlationId: props.CorrelationId);
 
-                var responseBytes = procedure.Invoke(body);
+                    var reply = procedure.Invoke(args.Body);
 
-                _model.BasicPublish(exchange: "", routingKey: props.ReplyTo, basicProperties: replyProps, body: responseBytes);
+                    _model.BasicPublish(exchange: "", routingKey: props.ReplyTo, basicProperties: replyProps, body: reply);
+                });               
             };
         }
 
