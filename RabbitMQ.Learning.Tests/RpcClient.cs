@@ -2,6 +2,7 @@
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Concurrent;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RabbitMQ.Learning.Tests
@@ -9,6 +10,7 @@ namespace RabbitMQ.Learning.Tests
     class RpcClient
     {
         private readonly EventingBasicConsumer _consumer;
+        private readonly string _replyQueueName;
 
         public IModel Model { get; private set; }
         public string QueueName { get; private set; }
@@ -21,6 +23,8 @@ namespace RabbitMQ.Learning.Tests
             Model = model;
             QueueName = queueName;
 
+            _replyQueueName = Model.QueueDeclare().QueueName;
+
             _consumer = new EventingBasicConsumer(model);
             _consumer.Received += (sender, args) =>
             {
@@ -32,18 +36,16 @@ namespace RabbitMQ.Learning.Tests
             };
         }
 
-        public Task<byte[]> CallAsync(byte[] bytes)
+        public Task<byte[]> CallAsync(byte[] bytes, CancellationToken cancellationToken = default(CancellationToken))
         {
-            var replyTo = Model.QueueDeclare().QueueName;
-
             var properties = Model.CreateBasicProperties(
                 correlationId: Guid.NewGuid().ToString(),
-                replyTo: replyTo);
+                replyTo: _replyQueueName);
 
-            return CallAsync(properties, bytes);
+            return CallAsync(properties, bytes, cancellationToken);
         }
 
-        public Task<byte[]> CallAsync(IBasicProperties properties, byte[] bytes)
+        public Task<byte[]> CallAsync(IBasicProperties properties, byte[] bytes, CancellationToken cancellationToken =  default(CancellationToken))
         {
             var tcs = new TaskCompletionSource<byte[]>();
 
@@ -51,7 +53,9 @@ namespace RabbitMQ.Learning.Tests
 
             Model.BasicPublish(exchange: "", routingKey: QueueName, basicProperties: properties, body: bytes);
 
-            Model.BasicConsume(properties.ReplyTo, true, _consumer);
+            Model.BasicConsume(_replyQueueName, true, _consumer);
+
+            cancellationToken.Register(() => _pending.TryRemove(properties.CorrelationId, out TaskCompletionSource<byte[]> tmp));
 
             return tcs.Task;
         }
