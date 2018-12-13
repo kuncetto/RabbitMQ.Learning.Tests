@@ -11,7 +11,7 @@ namespace RabbitMQ.Learning.Tests
         private readonly string _queueName;
         private readonly EventingBasicConsumer _consumer;
 
-        public RpcServer(IModel model, string queueName, Func<string, string> procedure)
+        public RpcServer(IModel model, string queueName, Func<byte[], byte[]> procedure)
         {
             _model = model;
             _queueName = queueName;
@@ -25,14 +25,9 @@ namespace RabbitMQ.Learning.Tests
                 var body = args.Body;
                 var props = args.BasicProperties;
 
-                var replyProps = _model.CreateBasicProperties();
-                replyProps.CorrelationId = props.CorrelationId;
+                var replyProps = _model.CreateBasicProperties(correlationId: props.CorrelationId);
 
-                var message = Encoding.UTF8.GetString(body);
-
-                var response = procedure.Invoke(message);
-
-                var responseBytes = Encoding.UTF8.GetBytes(response);
+                var responseBytes = procedure.Invoke(body);
 
                 _model.BasicPublish(exchange: "", routingKey: props.ReplyTo, basicProperties: replyProps, body: responseBytes);
             };
@@ -40,6 +35,8 @@ namespace RabbitMQ.Learning.Tests
 
         public void Run()
         {
+            if (_consumer.IsRunning) return;
+
             _model.BasicConsume(_queueName, autoAck: true, consumer: _consumer);
         }
     }

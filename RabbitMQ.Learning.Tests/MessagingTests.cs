@@ -1,5 +1,4 @@
 ﻿using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -10,6 +9,14 @@ namespace RabbitMQ.Learning.Tests
 {
     public class MessagingTests
     {
+
+        public Func<byte[], byte[]> RemoteProcedure => 
+            (b) => Encoding.UTF8.GetBytes(ServerReply(Encoding.UTF8.GetString(b)));
+
+        public Func<string, string> ServerReply => 
+            (s) => $"remote: {s}";
+
+
         [Theory]
         [InlineData("rabbitmq.test.queue", "Hello World!")]
         public void WhenAMessageIsPublishedOnAQueueThenAConsumerShouldReceiveIt(string queue, string message)
@@ -91,13 +98,13 @@ namespace RabbitMQ.Learning.Tests
                     .Given(() => new RpcContext
                     {
                         Client = new RpcClient(client, queueName),
-                        Server = new RpcServer(server, queueName, (s) => "server>> " + s)
+                        Server = new RpcServer(server, queueName, RemoteProcedure)
                     })
                     .When(context => context.Server.Run())
                     .Then(context =>
                     {
                         var response = context.Client.CallAsync(Encoding.UTF8.GetBytes(message));
-                        Assert.Equal($"server>> {message}", Encoding.UTF8.GetString(response.Result));
+                        Assert.Equal(ServerReply(message), Encoding.UTF8.GetString(response.Result));
                     });
             }
         }
@@ -115,7 +122,7 @@ namespace RabbitMQ.Learning.Tests
                     .Given(() => new RpcContext
                     {
                         Client = new RpcClient(client, queueName),
-                        Server = new RpcServer(server, queueName, (s) => "server>> " + s)
+                        Server = new RpcServer(server, queueName, RemoteProcedure)
                     })
                     .When(context => context.Server.Run())
                     .Then(context =>
@@ -129,7 +136,7 @@ namespace RabbitMQ.Learning.Tests
 
                         foreach (var call in calls)
                         {
-                            Assert.Equal($"server>> {call.Key}", Encoding.UTF8.GetString(call.Value.Result));
+                            Assert.Equal(ServerReply(call.Key), Encoding.UTF8.GetString(call.Value.Result));
                         }
                     });
             }
