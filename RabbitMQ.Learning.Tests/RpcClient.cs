@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace RabbitMQ.Learning.Tests
 {
-    class RpcClient
+    class RpcClient : IRpcClient
     {
         private readonly EventingBasicConsumer _consumer;
         private readonly string _replyQueueName;

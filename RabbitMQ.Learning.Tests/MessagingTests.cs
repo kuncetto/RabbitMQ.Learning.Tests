@@ -1,6 +1,7 @@
 ﻿using RabbitMQ.Client;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Xunit;
@@ -15,7 +16,6 @@ namespace RabbitMQ.Learning.Tests
 
         public Func<string, string> ServerReply => 
             (s) => $"remote: {s}";
-
 
         [Theory]
         [InlineData("rabbitmq.test.queue", "Hello World!")]
@@ -97,13 +97,13 @@ namespace RabbitMQ.Learning.Tests
                 new TestBuilder<RpcContext>()
                     .Given(() => new RpcContext
                     {
-                        Client = new RpcClient(client, queueName),
-                        Server = new RpcServer(server, queueName, RemoteProcedure)
+                        Clients = new List<IRpcClient> { new RpcClient(client, queueName) },
+                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, RemoteProcedure) }
                     })
-                    .When(context => context.Server.Run())
+                    .When(context => context.Servers.ForEach(s => s.Run()))
                     .Then(context =>
                     {
-                        var response = context.Client.CallAsync(Encoding.UTF8.GetBytes(message));
+                        var response = context.Clients.First().CallAsync(Encoding.UTF8.GetBytes(message));
                         Assert.Equal(ServerReply(message), Encoding.UTF8.GetString(response.Result));
                     });
             }
@@ -121,18 +121,52 @@ namespace RabbitMQ.Learning.Tests
                 new TestBuilder<RpcContext>()
                     .Given(() => new RpcContext
                     {
-                        Client = new RpcClient(client, queueName),
-                        Server = new RpcServer(server, queueName, RemoteProcedure)
+                        Clients = new List<IRpcClient> { new RpcClient(client, queueName) },
+                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, RemoteProcedure) }
                     })
-                    .When(context => context.Server.Run())
+                    .When(context => context.Servers.ForEach(s => s.Run()))
                     .Then(context =>
                     {
                         var calls = new Dictionary<string, Task<byte[]>>();
 
                         foreach (var message in messages)
                         {
-                            calls[message] = context.Client.CallAsync(Encoding.UTF8.GetBytes(message));
+                            calls[message] = context.Clients.First().CallAsync(Encoding.UTF8.GetBytes(message));
                         }
+
+                        foreach (var call in calls)
+                        {
+                            Assert.Equal(ServerReply(call.Key), Encoding.UTF8.GetString(call.Value.Result));
+                        }
+                    });
+            }
+        }
+
+        [Theory]
+        [InlineData("rabbitmq.test.rpc", "hello")]
+        public void WhenOneOrMoreClientsCallAMethodThenServerShouldSendTheRespectiveResponses(string queueName, string messageContent)
+        {
+            using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
+            using (var client = connection.CreateModel())
+            using (var server = connection.CreateModel())
+            {
+                new TestBuilder<RpcContext>()
+                    .Given(() => new RpcContext
+                    {
+                        Clients = new List<IRpcClient> { new RpcClient(client, queueName), new RpcClient(client, queueName) },
+                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, RemoteProcedure) }
+                    })
+                    .When(context => context.Servers.ForEach(s => s.Run()))
+                    .Then(context =>
+                    {
+                        var calls = new Dictionary<string, Task<byte[]>>();
+
+                        context.Clients.ForEach(c => {
+                            var clientId = Guid.NewGuid().ToString();
+                            var message = $"Client: {clientId} Content: {messageContent}";
+
+                            calls[message] = c.CallAsync(Encoding.UTF8.GetBytes(message));
+                        });
 
                         foreach (var call in calls)
                         {
