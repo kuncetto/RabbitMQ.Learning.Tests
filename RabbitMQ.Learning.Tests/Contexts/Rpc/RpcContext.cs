@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace RabbitMQ.Learning.Tests
+namespace RabbitMQ.Learning.Tests.Contexts.Rpc
 {
     class RpcContext
     {

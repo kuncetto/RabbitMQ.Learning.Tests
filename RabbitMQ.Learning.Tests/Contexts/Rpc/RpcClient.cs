@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RabbitMQ.Learning.Tests
+namespace RabbitMQ.Learning.Tests.Contexts.Rpc
 {
     class RpcClient : IRpcClient
     {

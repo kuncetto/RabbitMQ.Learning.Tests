@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Learning.Tests.Extensions;
+using RabbitMQ.Learning.Tests.Contexts.Rpc;
 using System;
 using System.Collections.Generic;
 using System.Linq;

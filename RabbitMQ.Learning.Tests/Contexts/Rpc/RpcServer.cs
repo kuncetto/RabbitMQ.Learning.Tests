@@ -4,7 +4,7 @@ using RabbitMQ.Learning.Tests.Extensions;
 using System;
 using System.Threading.Tasks;
 
-namespace RabbitMQ.Learning.Tests
+namespace RabbitMQ.Learning.Tests.Contexts.Rpc
 {
     class RpcServer : IRpcServer
     {
