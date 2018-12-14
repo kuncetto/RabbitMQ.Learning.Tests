@@ -41,7 +41,7 @@ namespace RabbitMQ.Learning.Tests
             return model.DeclareQueue(queue).DeclareExchange(exchange);
         }
 
-        public static IModel ForConsumer(this IModel model, string exchange, string routingKey, string queue)
+        public static IModel ForSubscriber(this IModel model, string exchange, string routingKey, string queue)
         {
             return model.DeclareQueue(queue).DeclareExchange(exchange).Bind(queue, exchange, routingKey);
         }

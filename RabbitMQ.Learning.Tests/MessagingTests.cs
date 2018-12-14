@@ -1,5 +1,7 @@
 ﻿using RabbitMQ.Client;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace RabbitMQ.Learning.Tests
@@ -31,15 +33,15 @@ namespace RabbitMQ.Learning.Tests
                     {
                         return new MessagingContext(
                             () => connection.CreateModel().ForPublisher(exchange, routingKey, queue),
-                            () => connection.CreateModel().ForConsumer(exchange, routingKey, queue));
+                            () => connection.CreateModel().ForSubscriber(exchange, routingKey, queue));
                     })
                     .When(context =>
                     {
-                        context.Publisher.Publish(exchange: exchange, routingKey: routingKey, message: message);
+                        context.Publishers.First().Publish(exchange: exchange, routingKey: routingKey, message: message);
                     })
                     .Then(context =>
                     {
-                        context.Consumer.ConsumeWithTimeout(
+                        context.Subscribers.First().ConsumeWithTimeout(
                             queue: queue,
                             timeout: TimeSpan.FromSeconds(5),
                             onReceived: receivedMessage => Assert.Equal(message, receivedMessage),
@@ -59,16 +61,16 @@ namespace RabbitMQ.Learning.Tests
                     .Given(() =>
                     {
                         return new MessagingContext(
-                            () => connection.CreateModel().ForPublisher(exchange, routingKey, queue),
-                            () => connection.CreateModel().ForConsumer(exchange, routingKey, queue));
+                            publishers: new List<IModel> { connection.CreatePublisher(exchange, routingKey, queue) },
+                            subscribers: new List<IModel> { connection.CreateSubscriber(exchange, routingKey, queue) });
                     })
                     .When(context =>
                     {
-                        context.Publisher.Publish(exchange: exchange, routingKey: routingKey, message: message);
+                        context.Publishers.First().Publish(exchange: exchange, routingKey: routingKey, message: message);
                     })
                     .Then(context =>
                     {
-                        var received = context.Consumer.ConsumeAsync(queue: queue).Result;
+                        var received = context.Subscribers.First().ConsumeAsync(queue: queue).Result;
                         Assert.Equal(message, received);
                     });
             }
