@@ -1,24 +1,20 @@
-﻿using RabbitMQ.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace RabbitMQ.Learning.Tests
 {
     class MessagingContext
     {
         public static int TimeoutSeconds = 5;
-        public IEnumerable<IModel> Publishers { get; private set; }
-        public IEnumerable<IModel> Subscribers { get; private set; }
+        public IEnumerable<Publisher> Publishers { get; private set; }
+        public IEnumerable<Subscriber> Subscribers { get; private set; }
 
-        public MessagingContext(Func<IModel> createPublisher, Func<IModel> createConsumer)
-        {
-            Publishers = new List<IModel> { createPublisher.Invoke() };
-            Subscribers = new List<IModel> { createConsumer.Invoke() };
-        }
+        //public MessagingContext(Func<IModel> createPublisher, Func<IModel> createConsumer)
+        //{
+        //    Publishers = new List<IModel> { createPublisher.Invoke() };
+        //    Subscribers = new List<IModel> { createConsumer.Invoke() };
+        //}
 
-        public MessagingContext(IEnumerable<IModel> publishers, IEnumerable<IModel> subscribers)
+        public MessagingContext(IEnumerable<Publisher> publishers, IEnumerable<Subscriber> subscribers)
         {
             Publishers = publishers;
             Subscribers = subscribers;
