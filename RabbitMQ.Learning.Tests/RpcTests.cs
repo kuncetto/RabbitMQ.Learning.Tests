@@ -13,14 +13,14 @@ namespace RabbitMQ.Learning.Tests
         private byte[] Encode(string s) => Encoding.UTF8.GetBytes(s);
         private string Decode(byte[] bytes) => Encoding.UTF8.GetString(bytes);
 
+        string Decorate(string s) => $"***{s}***";
+        byte[] DecorateBytes(byte[] bytes) => Encode(Decorate(Decode(bytes)));
+
         [Theory]
         [InlineData("rabbitmq.test.rpc", "hello")]
         [InlineData("rabbitmq.test.rpc", "bye")]
         public void WhenClientCallAMethodThenServerShouldSendAResponse(string queueName, string message)
         {
-            string decorate(string s) => $"***{s}***";
-            byte[] decorateBytes(byte[] bytes) => Encode(decorate(Decode(bytes)));
-
             using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
             using (var client = connection.CreateModel())
             using (var server = connection.CreateModel())
@@ -29,13 +29,13 @@ namespace RabbitMQ.Learning.Tests
                     .Given(() => new RpcContext
                     {
                         Clients = new List<IRpcClient> { new RpcClient(client, queueName) },
-                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, decorateBytes) }
+                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, DecorateBytes) }
                     })
                     .When(context => context.Servers.ForEach(s => s.Run()))
                     .Then(context =>
                     {
                         var response = context.Clients.First().CallAsync(Encode(message));
-                        Assert.Equal(decorate(message), Decode(response.Result));
+                        Assert.Equal(Decorate(message), Decode(response.Result));
                     });
             }
         }
@@ -45,9 +45,6 @@ namespace RabbitMQ.Learning.Tests
         [InlineData("rabbitmq.test.rpc", "a", "b", "c", "d", "e")]
         public void WhenClientCallAMethodSeveralTimesThenServerShouldSendTheRespectiveResponses(string queueName, params string[] messages)
         {
-            string decorate(string s) => $"***{s}***";
-            byte[] decorateBytes(byte[] bytes) => Encode(decorate(Decode(bytes)));
-
             using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
             using (var client = connection.CreateModel())
             using (var server = connection.CreateModel())
@@ -56,7 +53,7 @@ namespace RabbitMQ.Learning.Tests
                     .Given(() => new RpcContext
                     {
                         Clients = new List<IRpcClient> { new RpcClient(client, queueName) },
-                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, decorateBytes) }
+                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, DecorateBytes) }
                     })
                     .When(context => context.Servers.ForEach(s => s.Run()))
                     .Then(context =>
@@ -70,7 +67,7 @@ namespace RabbitMQ.Learning.Tests
 
                         foreach (var call in calls)
                         {
-                            Assert.Equal(decorate(call.Key), Decode(call.Value.Result));
+                            Assert.Equal(Decorate(call.Key), Decode(call.Value.Result));
                         }
                     });
             }
@@ -80,9 +77,6 @@ namespace RabbitMQ.Learning.Tests
         [InlineData("rabbitmq.test.rpc", "hello")]
         public void WhenOneOrMoreClientsCallAMethodThenServerShouldSendTheRespectiveResponses(string queueName, string messageContent)
         {
-            string decorate(string s) => $"***{s}***";
-            byte[] decorateBytes(byte[] bytes) => Encode(decorate(Decode(bytes)));
-
             using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
             using (var client = connection.CreateModel())
             using (var server = connection.CreateModel())
@@ -91,7 +85,7 @@ namespace RabbitMQ.Learning.Tests
                     .Given(() => new RpcContext
                     {
                         Clients = new List<IRpcClient> { new RpcClient(client, queueName), new RpcClient(client, queueName) },
-                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, decorateBytes) }
+                        Servers = new List<IRpcServer> { new RpcServer(server, queueName, DecorateBytes) }
                     })
                     .When(context => context.Servers.ForEach(s => s.Run()))
                     .Then(context =>
@@ -107,7 +101,7 @@ namespace RabbitMQ.Learning.Tests
 
                         foreach (var call in calls)
                         {
-                            Assert.Equal(decorate(call.Key), Decode(call.Value.Result));
+                            Assert.Equal(Decorate(call.Key), Decode(call.Value.Result));
                         }
                     });
             }
