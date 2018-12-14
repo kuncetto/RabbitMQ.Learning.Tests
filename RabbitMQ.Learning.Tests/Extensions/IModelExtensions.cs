@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RabbitMQ.Learning.Tests
+namespace RabbitMQ.Learning.Tests.Extensions
 {
     static class IModelExtensions
     {
@@ -36,9 +36,9 @@ namespace RabbitMQ.Learning.Tests
             return model;
         }
 
-        public static IModel ForPublisher(this IModel model, string exchange, string routingKey, string queue)
+        public static IModel ForPublisher(this IModel model, string exchange)
         {
-            return model.DeclareQueue(queue).DeclareExchange(exchange);
+            return model.DeclareExchange(exchange);
         }
 
         public static IModel ForSubscriber(this IModel model, string exchange, string routingKey, string queue)

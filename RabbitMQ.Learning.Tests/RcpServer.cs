@@ -1,5 +1,6 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Learning.Tests.Extensions;
 using System;
 using System.Threading.Tasks;
 

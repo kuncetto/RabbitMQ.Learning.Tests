@@ -1,4 +1,5 @@
 ﻿using RabbitMQ.Client;
+using RabbitMQ.Learning.Tests.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,7 +33,7 @@ namespace RabbitMQ.Learning.Tests
                     .Given(() =>
                     {
                         return new MessagingContext(
-                            () => connection.CreateModel().ForPublisher(exchange, routingKey, queue),
+                            () => connection.CreateModel().ForPublisher(exchange),
                             () => connection.CreateModel().ForSubscriber(exchange, routingKey, queue));
                     })
                     .When(context =>
@@ -61,7 +62,7 @@ namespace RabbitMQ.Learning.Tests
                     .Given(() =>
                     {
                         return new MessagingContext(
-                            publishers: new List<IModel> { connection.CreatePublisher(exchange, routingKey, queue) },
+                            publishers: new List<IModel> { connection.CreatePublisher(exchange) },
                             subscribers: new List<IModel> { connection.CreateSubscriber(exchange, routingKey, queue) });
                     })
                     .When(context =>

@@ -1,15 +1,12 @@
 ﻿using RabbitMQ.Client;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace RabbitMQ.Learning.Tests
+namespace RabbitMQ.Learning.Tests.Extensions
 {
     static class IConnectionExtensions
     {
-        public static IModel CreatePublisher(this IConnection connection, string exchange, string routingKey, string queue)
+        public static IModel CreatePublisher(this IConnection connection, string exchange)
         {
-            return connection.CreateModel().ForPublisher(exchange, routingKey, queue);
+            return connection.CreateModel().ForPublisher(exchange);
         }
 
         public static IModel CreateSubscriber(this IConnection connection, string exchange, string routingKey, string queue)
