@@ -1,4 +1,5 @@
 ﻿using RabbitMQ.Client;
+using RabbitMQ.Learning.Tests.Contexts.Subscription;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using Xunit;
 
 namespace RabbitMQ.Learning.Tests
 {
-    public class MessagingTests
+    public class SubscriptionTests
     {
         [Theory]
         [InlineData("rabbitmq.test.queue", "Hello World!")]
@@ -24,41 +25,14 @@ namespace RabbitMQ.Learning.Tests
             WhenPublisherSendsAMessageThenSubscriberShouldConsumeThat(exchange, "", queue, message);
         }
 
-        //private void WhenPublisherSendAMessageThenConsumerShouldReceiveIt(string exchange, string routingKey, string queue, string message)
-        //{
-        //    using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
-        //    {
-        //        new TestBuilder<MessagingContext>()
-        //            .Given(() =>
-        //            {
-        //                return new MessagingContext(
-        //                    publishers: new List<Publisher> { new Publisher(connection.CreateModel(), exchange, routingKey) },
-        //                    subscribers: new List<Subscriber> { new Subscriber(connection.CreateModel(), queue, exchange, routingKey) });
-        //            })
-        //            .When(context =>
-        //            {
-        //                context.Publishers.First().Publish(Encoding.UTF8.GetBytes(message));
-        //            })
-        //            .Then(context =>
-        //            {
-        //                context.Subscribers.First().Model.ConsumeWithTimeout(
-        //                    queue: queue,
-        //                    timeout: TimeSpan.FromSeconds(5),
-        //                    onReceived: receivedMessage => Assert.Equal(message, receivedMessage),
-        //                    onError: exception => throw exception,
-        //                    onTimeout: timeout => throw new TimeoutException($"Timeout expired after {timeout} seconds!"));
-        //            });
-        //    }
-        //}
-
         private void WhenPublisherSendsAMessageThenSubscriberShouldConsumeThat(string exchange, string routingKey, string queue, string message)
         {
             using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
             {
-                new TestBuilder<MessagingContext>()
+                new TestBuilder<SubscriptionContext>()
                     .Given(() =>
                     {
-                        return new MessagingContext(
+                        return new SubscriptionContext(
                             publishers: new List<Publisher> { new Publisher(connection.CreateModel(), exchange, routingKey) },
                             subscribers: new List<Subscriber> { new  Subscriber(connection.CreateModel(), queue, exchange, routingKey) });
                     })

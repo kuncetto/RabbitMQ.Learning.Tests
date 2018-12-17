@@ -2,7 +2,7 @@
 using RabbitMQ.Client.Events;
 using System.Threading.Tasks;
 
-namespace RabbitMQ.Learning.Tests
+namespace RabbitMQ.Learning.Tests.Contexts.Subscription
 {
     class Subscriber
     {
