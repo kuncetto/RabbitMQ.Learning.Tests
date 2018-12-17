@@ -1,8 +1,5 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Xunit;
 
 namespace RabbitMQ.Learning.Tests
@@ -10,7 +7,7 @@ namespace RabbitMQ.Learning.Tests
     public class ConnectionTests
     {
         [Fact]
-        public void WhenConnectionIsOpenThenItsStateShouldBeOpenToo()
+        public void OpenAConnectionUsingTheDefaultConnectionFactory()
         {
             new TestBuilder<IConnection>()
                 .Given(() => new ConnectionFactory().CreateConnection())
@@ -22,7 +19,7 @@ namespace RabbitMQ.Learning.Tests
 
         [Theory]
         [InlineData("my-rabbit-client")]
-        public void WhenAClientNameIsProvidedThenConnectionShouldBeSetAccordingly(string clientProvidedName)
+        public void OpenAConnectionPassingAClientProvidedName(string clientProvidedName)
         {
             new TestBuilder<IConnection>()
                 .Given(() => new ConnectionFactory().CreateConnection(clientProvidedName))
@@ -33,7 +30,7 @@ namespace RabbitMQ.Learning.Tests
         }
 
         [Fact]
-        public void WhenConnectionIsClosedThenItsStateShouldBeClosedToo()
+        public void CloseAConnectionPreviouslyOpen()
         {
             new TestBuilder<IConnection>()
                 .Given(() => new ConnectionFactory().CreateConnection())
@@ -45,7 +42,7 @@ namespace RabbitMQ.Learning.Tests
         }
 
         [Fact]
-        public void WhenConnectionIsClosedThenCreateModelShouldThrowAnException()
+        public void CreateAModelThrowsAnExceptionIfTheConnectionIsClosed()
         {
             new TestBuilder<IConnection>()
                 .Given(() => new ConnectionFactory().CreateConnection())
@@ -57,7 +54,7 @@ namespace RabbitMQ.Learning.Tests
         }
 
         [Fact]
-        public void WhenConnectionIsOpenThenCreateModelShouldReturnAValidModel()
+        public void CreateAModelWhenConnectionIsOpen()
         {
             new TestBuilder<IConnection>()
                 .Given(() => new ConnectionFactory().CreateConnection())

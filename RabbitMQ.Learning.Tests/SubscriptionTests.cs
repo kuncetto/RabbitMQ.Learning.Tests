@@ -11,21 +11,21 @@ namespace RabbitMQ.Learning.Tests
     {
         [Theory]
         [InlineData("rabbitmq.test.queue", "Hello World!")]
-        public void WhenPublisherSendsAMessageDirectlyToAQueueThenSubscriberShouldReceiveThat(string queue, string message)
+        public void PublishAMessageOnAQueueThenConsumeIt(string queue, string message)
         {
             // Publish directly on a queue (exchange = "", routingKey = queue)
-            WhenPublisherSendsAMessageThenSubscriberShouldConsumeThat("", queue, queue, message);
+            PublishAMessageThenConsumeIt("", queue, queue, message);
         }
 
         [Theory]
         [InlineData("rabbitmq.test.exchange", "rabbitmq.test.queue", "Publish/Subscribe")]
-        public void WhenPublisherSendsAMessageToAnExchangeThenABoundQueueShouldReceiveThat(string exchange, string queue, string message)
+        public void PublishAMessageOnAnExchangeThenConsumeItFromABoundedQueue(string exchange, string queue, string message)
         {
             // Publish on exchange bound by a queue
-            WhenPublisherSendsAMessageThenSubscriberShouldConsumeThat(exchange, "", queue, message);
+            PublishAMessageThenConsumeIt(exchange, "", queue, message);
         }
 
-        private void WhenPublisherSendsAMessageThenSubscriberShouldConsumeThat(string exchange, string routingKey, string queue, string message)
+        private void PublishAMessageThenConsumeIt(string exchange, string routingKey, string queue, string message)
         {
             using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
             {

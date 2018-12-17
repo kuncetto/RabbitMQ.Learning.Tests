@@ -21,7 +21,7 @@ namespace RabbitMQ.Learning.Tests
         [Theory]
         [InlineData("rabbitmq.test.rpc", "hello")]
         [InlineData("rabbitmq.test.rpc", "bye")]
-        public void WhenClientCallAMethodThenServerShouldSendAResponse(string queueName, string message)
+        public void CallARemoteProcedureAsync(string queueName, string message)
         {
             using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
             using (var client = connection.CreateModel())
@@ -45,7 +45,7 @@ namespace RabbitMQ.Learning.Tests
         [Theory]
         [InlineData("rabbitmq.test.rpc", "hello", "bye")]
         [InlineData("rabbitmq.test.rpc", "a", "b", "c", "d", "e")]
-        public void WhenClientCallAMethodSeveralTimesThenServerShouldSendTheRespectiveResponses(string queueName, params string[] messages)
+        public void CallARemoteProcedureAsyncSeveralTimes(string queueName, params string[] messages)
         {
             using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
             using (var client = connection.CreateModel())
@@ -77,7 +77,7 @@ namespace RabbitMQ.Learning.Tests
 
         [Theory]
         [InlineData("rabbitmq.test.rpc", "hello")]
-        public void WhenOneOrMoreClientsCallAMethodThenServerShouldSendTheRespectiveResponses(string queueName, string messageContent)
+        public void CallARemoteProcedureFromTwoClients(string queueName, string messageContent)
         {
             using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
             using (var client = connection.CreateModel())

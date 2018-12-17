@@ -8,7 +8,7 @@ namespace RabbitMQ.Learning.Tests
     public class ConnectionFactoryTests
     {
         [Fact]
-        public void WhenADefaultFactoryIsProvidedThenPropertiesShouldBeSetToTheirRespectiveDefaults()
+        public void DeclareAConnectionFactoryWithDefaultValues()
         {
             new TestBuilder<ConnectionFactory>()
                 .Given(() => new ConnectionFactory())
@@ -26,7 +26,7 @@ namespace RabbitMQ.Learning.Tests
         [InlineData("amqp://username:password@hostname:1234/vhost", "username", "password", "hostname", 1234, "vhost")]
         [InlineData("amqp://hostname:1234/vhost", "guest", "guest", "hostname", 1234, "vhost")]
         [InlineData("amqp://hostname:1234", "guest", "guest", "hostname", 1234, "/")]
-        public void WhenAValidUriIsAssignedThenPropertiesShouldChangeAccordingly(string uri, params object[] expected)
+        public void DeclareAConnectionFactoryByUri(string uri, params object[] expected)
         {
             new TestBuilder<ConnectionFactory>()
                 .Given(() => new ConnectionFactory())
@@ -42,7 +42,7 @@ namespace RabbitMQ.Learning.Tests
         }
 
         [Fact]
-        public void WhenHostIsUnreachableThenCreateConnectionShouldThrownAnException()
+        public void OpenAConnectionThrowsAnExceptionIfHostIsUnreachable()
         {
             new TestBuilder<ConnectionFactory>()
                 .Given(() => new ConnectionFactory())
@@ -54,7 +54,7 @@ namespace RabbitMQ.Learning.Tests
         }
 
         [Fact]
-        public void WhenHostIsReachableThenCreateConnectionShouldReturnAValidConnection()
+        public void OpenAConnectionIfHostIsReachable()
         {
             new TestBuilder<ConnectionFactory>()
                 .Given(() => new ConnectionFactory())
