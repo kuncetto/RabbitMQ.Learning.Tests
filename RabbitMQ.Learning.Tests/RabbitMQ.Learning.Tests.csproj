@@ -19,7 +19,6 @@
   <ItemGroup>
     <Folder Include="Contexts\Subscription\" />
     <Folder Include="Contexts\Rpc\" />
-    <Folder Include="Extensions\" />
   </ItemGroup>
 
 </Project>
