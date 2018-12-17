@@ -45,7 +45,7 @@ namespace RabbitMQ.Learning.Tests
                     .Then(context =>
                     {
                         var actual = context.QueueDeclare(queue: queueName);
-                        Assert.StartsWith(expectedQueueName, actual.QueueName);
+                        Assert.StartsWith(expectedQueueName, actual.QueueName, StringComparison.InvariantCulture);
                     });
             }
         }

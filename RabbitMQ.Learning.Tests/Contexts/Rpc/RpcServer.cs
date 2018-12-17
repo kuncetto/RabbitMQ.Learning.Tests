@@ -21,18 +21,16 @@ namespace RabbitMQ.Learning.Tests.Contexts.Rpc
             _model.BasicQos(0, 1, false);
 
             _consumer = new EventingBasicConsumer(_model);
-            _consumer.Received += async (sender, args) =>
+            _consumer.Received += (sender, args) =>
             {
-                await Task.Factory.StartNew(() => {
-                    var body = args.Body;
-                    var props = args.BasicProperties;
+                var body = args.Body;
+                var props = args.BasicProperties;
 
-                    var replyProps = _model.CreateBasicProperties(correlationId: props.CorrelationId);
+                var replyProps = _model.CreateBasicProperties(correlationId: props.CorrelationId);
 
-                    var reply = procedure.Invoke(args.Body);
+                var reply = procedure.Invoke(args.Body);
 
-                    _model.BasicPublish(exchange: "", routingKey: props.ReplyTo, basicProperties: replyProps, body: reply);
-                });               
+                _model.BasicPublish(exchange: "", routingKey: props.ReplyTo, basicProperties: replyProps, body: reply);
             };
         }
 

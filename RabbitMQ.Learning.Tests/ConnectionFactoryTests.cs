@@ -26,11 +26,11 @@ namespace RabbitMQ.Learning.Tests
         [InlineData("amqp://username:password@hostname:1234/vhost", "username", "password", "hostname", 1234, "vhost")]
         [InlineData("amqp://hostname:1234/vhost", "guest", "guest", "hostname", 1234, "vhost")]
         [InlineData("amqp://hostname:1234", "guest", "guest", "hostname", 1234, "/")]
-        public void DeclareAConnectionFactoryByUri(string uri, params object[] expected)
+        public void DeclareAConnectionFactoryByConnectionString(string connectionString, params object[] expected)
         {
             new TestBuilder<ConnectionFactory>()
                 .Given(() => new ConnectionFactory())
-                .When(factory => factory.Uri = new Uri(uri))
+                .When(factory => factory.Uri = new Uri(connectionString))
                 .Then(factory =>
                 {
                     Assert.Equal(expected[0], factory.UserName);
@@ -66,6 +66,5 @@ namespace RabbitMQ.Learning.Tests
                     Assert.True(connection.IsOpen);
                 });
         }
-
     }
 }
