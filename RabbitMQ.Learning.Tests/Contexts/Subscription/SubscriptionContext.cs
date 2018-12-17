@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 
-namespace RabbitMQ.Learning.Tests
+namespace RabbitMQ.Learning.Tests.Contexts.Subscription
 {
-    class MessagingContext
+    class SubscriptionContext
     {
         public static int TimeoutSeconds = 5;
         public IEnumerable<Publisher> Publishers { get; private set; }
@@ -14,7 +14,7 @@ namespace RabbitMQ.Learning.Tests
         //    Subscribers = new List<IModel> { createConsumer.Invoke() };
         //}
 
-        public MessagingContext(IEnumerable<Publisher> publishers, IEnumerable<Subscriber> subscribers)
+        public SubscriptionContext(IEnumerable<Publisher> publishers, IEnumerable<Subscriber> subscribers)
         {
             Publishers = publishers;
             Subscribers = subscribers;
