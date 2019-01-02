@@ -36,6 +36,25 @@ namespace RabbitMQ.Learning.Tests
             DeclareAQueueThrowsAnException<WireFormattingException>(queueName);
         }
 
+        [Fact]
+        public void DeclareAQueueTwiceWithDifferentAttributesThrowsAnException()
+        {
+            var queueName = "rabbitmq.test.queue";
+            var isExclusive = false;
+
+            using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
+            {
+                new TestBuilder<IModel>()
+                    .Given(() => connection.CreateModel())
+                    .When(context => context.QueueDeclare(queue: queueName, exclusive: isExclusive))
+                    .Then(context =>
+                    {
+                        Assert.Throws<OperationInterruptedException>(
+                            () => context.QueueDeclare(queue: queueName, exclusive: !isExclusive));
+                    });
+            }
+        }
+
         private void DeclareAQueueSuccessfully(string queueName, string expectedQueueName)
         {
             using (var connection = new ConnectionFactory { HostName = "localhost" }.CreateConnection())
